@@ -1,0 +1,20 @@
+Aeronis's own code (the `core/` mission engine, `server.py`, `desktop.py`,
+the CLI, and the project's own frontend code under `web/js/` and
+`web/*.html`) is dual-licensed under either of:
+
+* Apache License, Version 2.0 (see LICENSE-APACHE), or
+* MIT license (see LICENSE-MIT)
+
+at your option.
+
+This means you may use this software under the terms of either license,
+whichever you prefer.
+
+Unless you explicitly state otherwise, any contribution intentionally
+submitted for inclusion in this project, as defined in the Apache-2.0
+license, shall be dual-licensed as above, without any additional terms
+or conditions.
+
+Third-party components bundled in this repository (the JavaScript
+libraries under `web/lib/`) remain under their own original licenses —
+see THIRD_PARTY_LICENSES.md.
