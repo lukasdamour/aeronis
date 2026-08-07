@@ -1,0 +1,173 @@
+name: Build desktop app
+
+# Triggered by pushing a version tag (v0.3.0, v0.4.0, ...), which also
+# publishes the build to a GitHub Release, or manually via the Actions
+# tab (workflow_dispatch) for a test build without a release.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to attach files to a Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: DJI-Mission-Planner-windows
+          - os: macos-latest
+            artifact_name: DJI-Mission-Planner-macos
+          - os: ubuntu-latest
+            artifact_name: DJI-Mission-Planner-linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # QtWebEngine's Chromium subprocess needs several system libraries
+      # present on the base ubuntu-latest image but not installed by
+      # default. If a future PySide6 release changes what's required,
+      # a build failure here with a missing .so error is where to add
+      # to this list.
+      # This list was derived by running `ldd` directly on the bundled
+      # Qt xcb platform plugin (libqxcb.so) and the QtWebEngine
+      # Chromium subprocess (QtWebEngineProcess) and checking every
+      # dependency against Ubuntu's package index — not by guessing
+      # one missing .so at a time from error messages. If a future
+      # PySide6/Qt update needs another one, re-run that same `ldd`
+      # check rather than adding packages speculatively.
+      - name: Install Linux system dependencies for QtWebEngine
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+            libxkbcommon0 libxkbcommon-x11-0 libasound2t64 libatk1.0-0t64 \
+            libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxfixes3 \
+            libpango-1.0-0 libcairo2 libtiff6 libfontconfig1 libfreetype6 \
+            libegl1 libgl1 libopengl0 \
+            libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-util1 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0 \
+            libxcb-shm0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 \
+            libxcb-xkb1 libxcb-dri3-0 \
+            libx11-6 libx11-xcb1 libxext6 libxrender1 libxtst6 libxkbfile1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . --break-system-packages
+          pip install PySide6 pyinstaller Pillow --break-system-packages
+
+      - name: Generate app icons
+        run: python packaging/make_icons.py
+
+      - name: Build with PyInstaller
+        run: pyinstaller desktop.spec
+
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y xvfb
+          (timeout 40 xvfb-run -a ./dist/DJI-Mission-Planner/DJI-Mission-Planner &)
+          status="000"
+          for i in $(seq 1 20); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5000/ || true)
+            if [ "$status" = "200" ]; then
+              echo "server responded with 200 after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          test "$status" = "200"
+
+      - name: Package (Windows installer)
+        if: runner.os == 'Windows'
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows_installer.iss
+          Move-Item "dist_installer\DJI-Mission-Planner-Setup.exe" "${{ matrix.artifact_name }}-Setup.exe"
+
+      - name: Sign app (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Ad-hoc signing (no Apple Developer account / certificate
+          # needed). This doesn't make Gatekeeper trust the app, but it
+          # downgrades the failure from a hard, unbypassable "app is
+          # damaged" block to a dismissible "unidentified developer"
+          # warning the user can get past with right-click > Open.
+          codesign --force --deep --sign - "dist/DJI Mission Planner.app"
+
+      - name: Package (macOS .dmg)
+        if: runner.os == 'macOS'
+        run: |
+          # A real drag-to-Applications disk image, not a zip: stage
+          # the .app next to an /Applications symlink so Finder shows
+          # the familiar "drag icon onto Applications" layout, then
+          # compress that folder into a .dmg with hdiutil (bundled with
+          # macOS — no extra tool needed).
+          mkdir dmg_staging
+          cp -R "dist/DJI Mission Planner.app" dmg_staging/
+          ln -s /Applications dmg_staging/Applications
+          hdiutil create -volname "DJI Mission Planner" -srcfolder dmg_staging -ov -format UDZO "${{ matrix.artifact_name }}.dmg"
+
+      - name: Package (Linux AppImage)
+        if: runner.os == 'Linux'
+        run: |
+          # AppImage is the closest Linux equivalent of "download and
+          # double-click, no install step" — a single portable
+          # executable, unlike the .deb/.rpm split across distros.
+          mkdir -p AppDir/usr/bin
+          cp -R dist/DJI-Mission-Planner/* AppDir/usr/bin/
+          cp packaging/icon.png AppDir/dji-mission-planner.png
+
+          cat > AppDir/dji-mission-planner.desktop << 'EOF'
+          [Desktop Entry]
+          Name=DJI Mission Planner
+          Exec=DJI-Mission-Planner
+          Icon=dji-mission-planner
+          Type=Application
+          Categories=Utility;Science;
+          EOF
+
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/usr/bin/DJI-Mission-Planner" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          # GitHub Actions runners don't have FUSE available, which
+          # appimagetool normally needs to mount itself — this env var
+          # makes it extract and run instead, which works without FUSE.
+          APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool AppDir "${{ matrix.artifact_name }}.AppImage"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.artifact_name }}-Setup.exe
+            ${{ matrix.artifact_name }}.dmg
+            ${{ matrix.artifact_name }}.AppImage
+          if-no-files-found: ignore
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.artifact_name }}-Setup.exe
+            ${{ matrix.artifact_name }}.dmg
+            ${{ matrix.artifact_name }}.AppImage
