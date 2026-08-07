@@ -119,8 +119,8 @@ Full reference in [docs/CLI_DOCUMENTATION.md](docs/CLI_DOCUMENTATION.md).
  
 This project is dual-licensed under either of
 
-- [Apache License, Version 2.0](LICENSE-APACHE)
-- [MIT license](LICENSE-MIT)
+- [Apache License, Version 2.0](LICENSE-APACHE.txt)
+- [MIT license](LICENSE-MIT.txt)
 
 at your option.
 
