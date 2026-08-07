@@ -117,7 +117,18 @@ Full reference in [docs/CLI_DOCUMENTATION.md](docs/CLI_DOCUMENTATION.md).
  
 ## License
  
-This project is developed for educational and research purposes as part of a university internship. It is not affiliated with or endorsed by DJI.
+This project is dual-licensed under either of
+
+- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT license](LICENSE-MIT)
+
+at your option.
+
+Third-party components bundled in `web/lib/` (MapLibre GL JS, Mapbox GL
+Draw) remain under their own licenses — see
+[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+Aeronis is not affiliated with, endorsed by, or sponsored by DJI.
  
 ## Authors and acknowledgment
  
