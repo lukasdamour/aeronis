@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aeronis"
+version = "1.3.0"
+description = "CLI for DJI mission planning and KMZ generation"
+requires-python = ">=3.10"
+
+dependencies = [
+    "Flask>=3.0",
+    "Flask-Cors>=6.0",
+    "requests>=2.31",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*"]
+exclude = ["web*", "samples*", "tests*"]
+
+[project.scripts]
+aeronis = "core.cli.main:app"

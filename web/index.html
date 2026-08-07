@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aeronis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="lib/maplibre-gl.css"/>
+    <link rel="stylesheet" href="lib/mapbox-gl-draw.css">
+    <link rel="stylesheet" href="style/style.css">
+    <link rel="icon" href="img/logo.jpeg" type="image/x-icon">
+
+    <script src="lib/maplibre-gl.js" defer></script>
+    <script src="lib/mapbox-gl-draw.js" defer></script>
+    <script src="js/splash.js" defer></script>
+    <script src="js/map.js" defer></script>
+    <script src="js/history.js" defer></script>
+    <script src="js/gsd.js" defer></script>
+    <script src="js/zip.js" defer></script>
+    <script src="js/waypoints.js" defer></script>
+    <script src="js/zones.js" defer></script>
+    <script src="js/llm.js" defer></script>
+    
+</head>
+<body>
+<div id="splash-screen">
+    <div class="splash-content">
+        <img src="img/logo.jpeg" alt="" class="splash-logo">
+        <div class="splash-title">AERONIS</div>
+    </div>
+</div>
+<div class="layout">
+    <div id="map"></div>
+    <button id="toggleMap">Satellite</button>
+    <a id="offlineMapsLink" href="offline-maps.html" title="Download maps for offline use">⬇ Offline Maps</a>
+    <div id="offlineIndicator" title="Using local tiles (offline mode)">📡 Offline</div>
+    <div class="map-hint">Clic on the map to add a waypoint</div>
+
+    <button class="llm-bubble" id="llm-bubble" onclick="toggleLlmPanel()" title="AI Assistant">✨</button>
+    <div class="llm-panel" id="llm-panel" style="display:none">
+        <div class="llm-panel-header">
+            <span>AI Mission Assistant</span>
+            <button class="zone-panel-close" onclick="toggleLlmPanel()">x</button>
+        </div>
+        <div class="llm-tabs">
+            <button class="llm-tab active" id="llm-tab-generate" onclick="setLlmTab('generate')">Generate</button>
+            <button class="llm-tab" id="llm-tab-edit" onclick="setLlmTab('edit')">Edit mission</button>
+        </div>
+        <div class="llm-provider-row">
+            <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;">🔒 Local (Ollama) only</span>
+        </div>
+        <div class="llm-provider-row">
+            <select id="llm-model" style="flex:1; padding:6px 8px; border:1px solid var(--border); border-radius:var(--radius); font-size:12px;">
+                <option value="">model...</option>
+            </select>
+        </div>
+        <div id="llm-tab-panel-generate">
+        <textarea id="llm-prompt" placeholder="e.g. Survey this field at 50m, 80% overlap -- or: Survey the Eiffel Tower area at 60m, 150m radius"></textarea>
+        <div id="llm-status" style="font-size:11px;color:var(--danger);margin-bottom:6px;"></div>
+        <button class="hbtn primary" id="llm-submit" style="width:100%;justify-content:center" onclick="submitLlmPrompt()">Generate mission</button>
+        <div class="llm-loading" id="llm-loading" style="display:none">Thinking…</div>
+        <div class="llm-reasoning" id="llm-reasoning" style="display:none"></div>
+        <div class="llm-hint">Draw a zone first, or name a real place ("survey the stadium in Nice") to have it looked up automatically (OpenStreetMap/Nominatim) and used as the zone. Either way, coordinates are never invented -- only looked up or drawn by you.</div>
+        </div>
+        <div id="llm-tab-panel-edit" style="display:none">
+        <textarea id="llm-edit-prompt" placeholder="e.g. Lower altitude to 60m, remove all photos, fly it backwards"></textarea>
+        <div id="llm-edit-status" style="font-size:11px;color:var(--danger);margin-bottom:6px;"></div>
+        <button class="hbtn primary" id="llm-edit-submit" style="width:100%;justify-content:center" onclick="submitLlmEditPrompt()">Apply edits</button>
+        <div class="llm-loading" id="llm-edit-loading" style="display:none">Thinking…</div>
+        <div class="llm-reasoning" id="llm-edit-reasoning" style="display:none"></div>
+        <div class="llm-hint">Edits the mission's current waypoints in place (altitude, speed, camera actions, direction, simplification) -- coordinates are never touched.</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <span>Waypoints</span>
+            <div style="display:flex; gap:6px;">
+                <button class="hbtn" id="undo-btn" onclick="undoEdit()" title="Undo (Ctrl+Z)" disabled>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                </button>
+                <button class="hbtn" id="redo-btn" onclick="redoEdit()" title="Redo (Ctrl+Y)" disabled>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>
+                </button>
+                <button class="hbtn danger" onclick="clearWaypoints()">Clear</button>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="stats">
+                <div class="stat"><div class="sv" id="st-wps">0</div><div class="sl">Waypoints</div></div>
+                <div class="stat"><div class="sv" id="st-dist">-</div><div class="sl">Distance</div></div>
+                <div class="stat"><div class="sv" id="st-dur">-</div><div class="sl">Est. Duration</div></div>
+                <div class="stat"><div class="sv" id="st-alt">-</div><div class="sl">Avg. alt.</div></div>
+                <div class="stat"><div class="sv" id="st-gsd">-</div><div class="sl">GSD</div></div>
+            </div>
+            <div id="val-feedback"></div>
+
+        
+            <div class="section-title">Import mission</div>
+            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                Drop a mission here<br>
+                <div class="drop-zone-sub">or click to browse</div>
+            </div>
+            <div class="drop-zone-format">.KMZ</div>
+            <input type="file" id="file-input" accept=".kmz" style="display:none">
+
+            <div class="section-title">Coverage zone</div>
+            <div class="zone-toolbar">
+                <button class="zone-tool-btn" data-mode="polygon" onclick="startDrawPolygon()" title="Draw polygon">
+                    <svg class="zone-tool-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.83 2.38a2 2 0 0 1 2.34 0l8 5.74a2 2 0 0 1 .73 2.25l-3.04 9.26a2 2 0 0 1-1.9 1.37H7.04a2 2 0 0 1-1.9-1.37L2.1 10.37a2 2 0 0 1 .73-2.25z" /></svg>
+                    Polygon
+                </button>
+                <button class="zone-tool-btn" data-mode="rectangle" onclick="startDrawRectangle()" title="Draw rectangle">
+                    <svg class="zone-tool-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /></svg>
+                    Rectangle
+                </button>
+                <button class="zone-tool-btn" data-mode="cancel" onclick="cancelZoneDrawing()" title="Cancel">x</button>
+            </div>
+            <div class="zone-hint">Draw a zone, then edits its vertices by dragging them. The mission is generated automatically.</div>
+
+            <div class="mission-tabs" id="mission-tabs" style="display:none"></div>
+
+            <div class="wp-list" id="wp-list">
+                <div class="wp-empty">Click on the map to add waypoints</div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <button class="hbtn" id="export-all-btn" style="display:none; width:100%; justify-content:center;"
+                    onclick="exportAllMissions(buildMissionConfig())">
+                ⬇ Export All Missions
+            </button>
+            <div class="mode-switch" style="width:100%;margin-bottom:8px">
+                <button class="mode-btn" id="mode-btn-photo" onclick="setMissionMode('photo')" title="Photo mode: takePhoto at each waypoint">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    Photo
+                </button>
+                <button class="mode-btn" id="mode-btn-video" onclick="setMissionMode('video')" title="Video mode: startRecord at first waypoint, stopRecord at last">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2"/></svg>
+                    Video
+                </button>
+                <button class="mode-btn active" id="mode-btn-none" onclick="setMissionMode('none')" title="No camera action">
+                    x
+                </button>
+            </div>
+            <div class="footer-actions">
+                <button class="hbtn" onclick="validateMission()">Validate</button>
+                <button class="hbtn primary" onclick="generateKMZ(buildMissionConfig())">⬇ Export KMZ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="drag-overlay" id="drag-overlay">
+    <div class="drag-overlay-box">Drop your .kmz file to import</div>
+</div>
+
+<div class="zone-panel" id="zone-panel" style="display:none">
+    <div class="zone-panel-header">
+        <span>Zone parameters</span>
+        <div class="zone-panel-header-actions">
+            <button class="zone-panel-collapse" id="zone-panel-collapse-btn" onclick="toggleZonePanelCollapse()" title="Collapse/expand">▾</button>
+            <button class="zone-panel-close" onclick="closeZonePanel()" title="Deselect zone">x</button>
+        </div>
+    </div>
+    <div class="zone-panel-body" id="zone-panel-body">
+    <div class="field">
+        <label>Altitude (m)</label>
+        <input type="number" id="zone-altitude" value="80" min="5" max="500" step="5" oninput="onZoneParamChange()">
+    </div>
+    <div class="field">
+        <label>Speed (m/s)</label>
+        <input type="number" id="zone-speed" value="5" min="1" max="15" step="0.5" oninput="onZoneParamChange()">
+    </div>
+    <div class="field">
+        <label>Overlap (%)</label>
+        <input type="number" id="zone-overlap" value="80" min="0" max="95" step="5" oninput="onZoneParamChange()">
+    </div>
+    <div class="field">
+        <label>Flight line angle (°)</label>
+        <input type="number" id="zone-angle" value="0" min="0" max="179" step="5" oninput="onZoneParamChange()">
+    </div>
+    <div class="field">
+        <label>Drone</label>
+        <select id="zone-drone" onchange="onZoneParamChange()">
+            <optgroup label="Consumer (DJI Fly)">
+                <option value="MINI_3_PRO">Mini 3 Pro</option>
+                <option value="MINI_4_PRO">Mini 4 Pro</option>
+                <option value="MAVIC_3" selected>Mavic 3</option>
+                <option value="MAVIC_3_CLASSIC">Mavic 3 Classic</option>
+                <option value="AIR_3">Air 3</option>
+                <option value="AIR_3S">Air 3S</option>
+            </optgroup>
+            <optgroup label="Mavic 3 Enterprise (DJI Pilot 2)">
+                <option value="MAVIC_3_ENTERPRISE">Mavic 3 Enterprise</option>
+                <option value="MAVIC_3_THERMAL">Mavic 3 Thermal</option>
+                <option value="MAVIC_3_MULTISPECTRAL">Mavic 3 Multispectral</option>
+            </optgroup>
+            <optgroup label="Matrice 30 (DJI Pilot 2 + Dock)">
+                <option value="MATRICE_30">Matrice 30</option>
+                <option value="MATRICE_30T">Matrice 30T</option>
+            </optgroup>
+            <optgroup label="Matrice 3D (DJI Pilot 2 + Dock 2)">
+                <option value="MATRICE_3D">Matrice 3D</option>
+                <option value="MATRICE_3TD">Matrice 3TD</option>
+            </optgroup>
+            <optgroup label="Matrice 300 / 350 (DJI Pilot 2)">
+                <option value="MATRICE_300">Matrice 300</option>
+                <option value="MATRICE_350_RTK">Matrice 350 RTK</option>
+            </optgroup>
+        </select>
+    </div>
+    <div class="field">
+        <label id="split-value-label">Max waypoints per mission</label>
+        <input type="number" id="split-value" value="150" min="1" max="200" step="10" oninput="onSplitValueChange()">
+    </div>
+    <div class="zone-hint">
+        Minimum missions required:
+        <strong id="split-mission-count">1</strong>
+    </div>
+    <div class="zone-hint">Controller crashes beyond 200 waypoints/mission — enforced automatically regardless of this setting.</div>
+    <button class="hbtn primary" style="width:100%; margin-top:4px" onclick="commitZonePreview()">Generate Mission</button>
+    </div>
+</div>
+
+<!-- Edit waypoint popup -->
+<div class="edit-popup" id="wp-edit-popup" style="display:none" onclick="if(event.target===this) closeWpEdit()">
+    <div class="edit-box">
+        <h3 id="wp-edit-title">Edit Waypoint</h3>
+        <div class="edit-row">
+            <div class="field"><label>Longitude</label><input type="number" id="wp-edit-lon" step="0.000001"></div>
+            <div class="field"><label>Latitude</label><input type="number" id="wp-edit-lat" step="0.000001"></div>
+        </div>
+        <div class="edit-row">
+            <div class="field"><label>Altitude (m)</label><input type="number" id="wp-edit-alt" step="1" min="0" max="500"></div>
+            <div class="field"><label>Speed (m/s)</label><input type="number" id="wp-edit-spd" step="0.5" min="1" max="15"></div>
+        </div>
+        <div class="field">
+            <label>Camera Action</label>
+            <select id="wp-edit-action">
+                <option value="">None</option>
+                <option value="takePhoto">Take Photo</option>
+                <option value="startRecord">Start Recording</option>
+                <option value="stopRecord">Stop Recording</option>
+                <option value="hover">Hover</option>
+            </select>
+        </div>
+        <div class="edit-actions">
+            <button class="btn-sm" onclick="closeWpEdit()">Cancel</button>
+            <button class="btn-sm ok" onclick="saveWpEdit()">Save</button>
+        </div>
+    </div>
+</div>
+<script src="js/import.js" defer></script>
+</body>
+</html>

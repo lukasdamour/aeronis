@@ -1,0 +1,162 @@
+#om-map {
+    flex: 1;
+    height: 100vh;
+    background: var(--bg);
+}
+
+.om-panel {
+    width: 380px;
+}
+
+.om-panel .panel-header {
+    justify-content: space-between;
+}
+
+.om-panel .panel-header .hbtn {
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.om-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin: -4px 0 10px;
+    line-height: 1.4;
+}
+
+.om-notice {
+    background: var(--warn-bg);
+    color: var(--warning);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.om-region-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.om-region-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+}
+
+.om-region-card .om-region-name {
+    font-weight: 600;
+}
+
+.om-region-card .om-region-size {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.om-draw-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.om-draw-row .hbtn {
+    flex: 1;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}
+
+#om-draw-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+.om-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.om-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.om-card-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.om-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--ok-bg);
+    color: var(--success);
+}
+
+.om-card-meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.om-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.om-card-actions .hbtn {
+    padding: 5px 10px;
+}
+
+.om-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+    margin: 6px 0;
+}
+
+.om-progress-bar {
+    height: 100%;
+    width: 40%;
+    background: var(--accent);
+    animation: om-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes om-indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+}
+
+.om-log {
+    background: #0f172a;
+    color: #94a3b8;
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.5;
+    border-radius: var(--radius);
+    padding: 8px;
+    max-height: 140px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}

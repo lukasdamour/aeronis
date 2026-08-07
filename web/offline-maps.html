@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Offline Maps - Aeronis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="lib/maplibre-gl.css"/>
+    <link rel="stylesheet" href="style/style.css">
+    <link rel="stylesheet" href="style/offline-maps.css">
+    <link rel="icon" href="img/logo.jpeg" type="image/x-icon">
+
+    <script src="lib/maplibre-gl.js" defer></script>
+    <script src="js/offline-maps.js" defer></script>
+</head>
+<body>
+<div class="layout">
+    <div id="om-map"></div>
+
+    <div class="panel om-panel">
+        <div class="panel-header">
+            <a class="hbtn" href="index.html" title="Back to mission planner">← Planner</a>
+            <span>Offline Maps</span>
+            <span style="width:66px"></span>
+        </div>
+        <div class="panel-body">
+
+            <div id="om-unavailable" class="om-notice" style="display:none"></div>
+
+            <div class="section-title">Download a region</div>
+            <div class="om-hint">Whole-country vector maps (OpenStreetMap via Geofabrik + Planetiler). Large but simple: one file, works anywhere in the country.</div>
+            <div class="om-region-list" id="om-region-list"></div>
+
+            <div class="section-title">Download a custom zone</div>
+            <div class="om-hint">Draw a rectangle over the area you'll actually fly in for a much smaller download.</div>
+            <div class="field">
+                <label>Source region (data comes from here)</label>
+                <select id="om-custom-region"></select>
+            </div>
+            <div class="field">
+                <label>Zone name</label>
+                <input type="text" id="om-custom-name" placeholder="e.g. Job site north field">
+            </div>
+            <div class="om-draw-row">
+                <button class="hbtn" id="om-draw-btn" onclick="toggleDrawRectangle()">▭ Draw zone on map</button>
+                <button class="hbtn" id="om-clear-btn" onclick="clearDrawnRectangle()" disabled>Clear</button>
+            </div>
+            <div class="om-hint" id="om-bounds-hint"></div>
+            <button class="hbtn primary" id="om-download-custom-btn" style="width:100%" onclick="downloadCustomZone()" disabled>⬇ Download this zone</button>
+
+            <div class="section-title">Active downloads</div>
+            <div id="om-jobs-empty" class="om-hint">No download in progress.</div>
+            <div id="om-jobs-list"></div>
+
+            <div class="section-title">Downloaded maps</div>
+            <div id="om-maps-empty" class="om-hint">No offline map downloaded yet.</div>
+            <div id="om-maps-list"></div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
