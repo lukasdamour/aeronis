@@ -278,6 +278,23 @@ function setZoneCaptureMode(mode) {
     ZONE_PARAMS.capture_mode = mode;
 }
 
+function onDroneChange() {
+    const select = document.getElementById('zone-drone');
+    if (!select) return;
+    ZONE_PARAMS.drone = select.value;
+
+    // Manual missions: the photo spacing depends on the camera, so re-apply
+    // the current capture mode with the newly selected drone.
+    if (currentMissionMode === 'photo' && wpState.waypoints.length) {
+        setMissionMode('photo');
+    }
+    if (typeof refreshWpPanel === 'function') refreshWpPanel(); // GSD
+
+    // A zone is being edited: regenerate its preview with the new camera.
+    const zonePanel = document.getElementById('zone-panel');
+    if (zonePanel && zonePanel.style.display !== 'none') onZoneParamChange();
+}
+
 function onZoneParamChange() {
     ZONE_PARAMS.altitude = parseFloat(document.getElementById('zone-altitude').value) || 80;
     ZONE_PARAMS.speed = parseFloat(document.getElementById('zone-speed').value) || 5;
