@@ -126,6 +126,36 @@
             </div>
         </div>
         <div class="panel-footer">
+            <div class="field">
+                <label>Drone</label>
+                <select id="zone-drone" onchange="onDroneChange()">
+                    <optgroup label="Consumer (DJI Fly)">
+                        <option value="MINI_3_PRO">Mini 3 Pro</option>
+                        <option value="MINI_4_PRO">Mini 4 Pro</option>
+                        <option value="MAVIC_3" selected>Mavic 3</option>
+                        <option value="MAVIC_3_CLASSIC">Mavic 3 Classic</option>
+                        <option value="AIR_3">Air 3</option>
+                        <option value="AIR_3S">Air 3S</option>
+                    </optgroup>
+                    <optgroup label="Mavic 3 Enterprise (DJI Pilot 2)">
+                        <option value="MAVIC_3_ENTERPRISE">Mavic 3 Enterprise</option>
+                        <option value="MAVIC_3_THERMAL">Mavic 3 Thermal</option>
+                        <option value="MAVIC_3_MULTISPECTRAL">Mavic 3 Multispectral</option>
+                    </optgroup>
+                    <optgroup label="Matrice 30 (DJI Pilot 2 + Dock)">
+                        <option value="MATRICE_30">Matrice 30</option>
+                        <option value="MATRICE_30T">Matrice 30T</option>
+                    </optgroup>
+                    <optgroup label="Matrice 3D (DJI Pilot 2 + Dock 2)">
+                        <option value="MATRICE_3D">Matrice 3D</option>
+                        <option value="MATRICE_3TD">Matrice 3TD</option>
+                    </optgroup>
+                    <optgroup label="Matrice 300 / 350 (DJI Pilot 2)">
+                        <option value="MATRICE_300">Matrice 300</option>
+                        <option value="MATRICE_350_RTK">Matrice 350 RTK</option>
+                    </optgroup>
+                </select>
+            </div>
             <button class="hbtn" id="export-all-btn" style="display:none; width:100%; justify-content:center;"
                     onclick="exportAllMissions(buildMissionConfig())">
                 ⬇ Export All Missions
@@ -181,36 +211,7 @@
         <label>Flight line angle (°)</label>
         <input type="number" id="zone-angle" value="0" min="0" max="179" step="5" oninput="onZoneParamChange()">
     </div>
-    <div class="field">
-        <label>Drone</label>
-        <select id="zone-drone" onchange="onZoneParamChange()">
-            <optgroup label="Consumer (DJI Fly)">
-                <option value="MINI_3_PRO">Mini 3 Pro</option>
-                <option value="MINI_4_PRO">Mini 4 Pro</option>
-                <option value="MAVIC_3" selected>Mavic 3</option>
-                <option value="MAVIC_3_CLASSIC">Mavic 3 Classic</option>
-                <option value="AIR_3">Air 3</option>
-                <option value="AIR_3S">Air 3S</option>
-            </optgroup>
-            <optgroup label="Mavic 3 Enterprise (DJI Pilot 2)">
-                <option value="MAVIC_3_ENTERPRISE">Mavic 3 Enterprise</option>
-                <option value="MAVIC_3_THERMAL">Mavic 3 Thermal</option>
-                <option value="MAVIC_3_MULTISPECTRAL">Mavic 3 Multispectral</option>
-            </optgroup>
-            <optgroup label="Matrice 30 (DJI Pilot 2 + Dock)">
-                <option value="MATRICE_30">Matrice 30</option>
-                <option value="MATRICE_30T">Matrice 30T</option>
-            </optgroup>
-            <optgroup label="Matrice 3D (DJI Pilot 2 + Dock 2)">
-                <option value="MATRICE_3D">Matrice 3D</option>
-                <option value="MATRICE_3TD">Matrice 3TD</option>
-            </optgroup>
-            <optgroup label="Matrice 300 / 350 (DJI Pilot 2)">
-                <option value="MATRICE_300">Matrice 300</option>
-                <option value="MATRICE_350_RTK">Matrice 350 RTK</option>
-            </optgroup>
-        </select>
-    </div>
+    
     <div class="field">
         <label id="split-value-label">Max waypoints per mission</label>
         <input type="number" id="split-value" value="150" min="1" max="200" step="10" oninput="onSplitValueChange()">
